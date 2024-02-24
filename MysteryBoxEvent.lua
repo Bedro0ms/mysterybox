@@ -1,25 +1,43 @@
--- MysteryBoxEvent.lua: Enhanced with cooldowns, visual indicators, and more rewards
+-- MysteryBoxEvent.lua: Full integration with initial setup and new enhancements
 
 local MysteryBoxEvent = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Debris = game:GetService("Debris")
 
--- Configurations
+-- Customizable box contents
+MysteryBoxEvent.boxContents = {
+    common = {
+        {type = "speedBoost", duration = 10, amount = 10}, -- Increase speed
+        {type = "healthBoost", amount = 50}, -- Heal the player
+        -- Add more common rewards as needed
+    },
+    uncommon = {
+        {type = "temporaryShield", duration = 15}, -- Temporary shield
+        {type = "lowGravity", duration = 10}, -- Lower gravity
+        -- Add more uncommon rewards as needed
+    },
+    rare = {
+        {type = "flyAbility", duration = 20}, -- Enable flying
+        {type = "invisible", duration = 15}, -- Make the player invisible
+        -- Add more rare rewards as needed
+    },
+    veryRare = {
+        {type = "rareItem", itemName = "Golden Sword"}, -- Give a rare item
+        {type = "largeCurrency", amount = 1000}, -- Grant currency
+        -- Add more very rare rewards as needed
+    },
+    unlucky = {
+        {type = "funnyEffect", effectName = "BigHead", duration = 20}, -- Enlarge player's head
+        {type = "slowness", duration = 20, amount = -10}, -- Reduce speed
+        -- Add more unlucky outcomes as needed
+    }
+}
+
+-- Assuming you have a MysteryBox model in ReplicatedStorage
 local mysteryBoxTemplate = ReplicatedStorage:FindFirstChild("MysteryBox")
-local eventDuration = 30 -- Duration of the event in seconds
-local playerCooldowns = {} -- Track cooldowns for each player
 
--- Function to check cooldown
-local function canPlayerInteract(player)
-    if not playerCooldowns[player.UserId] or time() - playerCooldowns[player.UserId] > eventDuration then
-        return true
-    else
-        return false, playerCooldowns[player.UserId] + eventDuration - time() -- Remaining cooldown time
-    end
-end
-
--- Update the spawnBoxes function to include cooldown checks
+-- Function to spawn a Mystery Box on each player's plate
 function MysteryBoxEvent.spawnBoxes()
     for _, player in ipairs(Players:GetPlayers()) do
         local plate = --[[ Find the player's plate here ]]
@@ -28,71 +46,50 @@ function MysteryBoxEvent.spawnBoxes()
             box.Position = plate.Position + Vector3.new(0, 5, 0) -- Adjust Y value as needed
             box.Parent = plate
             box.Interactable = true
-
-            -- Add an interaction event listener here, if necessary
-            -- This part will depend on how you set up interactions in your game
+            -- Add event listener for player interaction if necessary
         end
     end
 end
 
--- Enhanced interaction function with cooldown checks and more outcomes
+-- Function to handle player interaction with a Mystery Box
 function MysteryBoxEvent.handleInteraction(player, box)
-    local canInteract, cooldown = canPlayerInteract(player)
-    if not canInteract then
-        player:SendNotification({
-            Title = "Cooldown",
-            Text = "Please wait " .. math.floor(cooldown) .. " more seconds.",
-            Duration = 5
-        })
-        return
-    end
+    local outcome = math.random(1, 100) -- Randomizing the outcome
+    local selectedCategory = ""
+    local selectedReward = nil
 
-    playerCooldowns[player.UserId] = time() -- Update the player's last interaction time
-
-    local outcome = math.random(1, 100)
-    -- Expanding the outcomes with more varied rewards and effects
+    -- Determine the reward category based on the outcome
     if outcome <= 50 then
-        -- Common rewards
-        -- Example: Temporarily increase speed
-        local originalSpeed = player.Character.Humanoid.WalkSpeed
-        player.Character.Humanoid.WalkSpeed += 10
-        wait(10) -- Speed boost duration
-        player.Character.Humanoid.WalkSpeed = originalSpeed
+        selectedCategory = "common"
     elseif outcome <= 75 then
-        -- Uncommon rewards
-        -- Example: Heal the player fully
-        player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth
+        selectedCategory = "uncommon"
     elseif outcome <= 90 then
-        -- Rare rewards
-        -- Example: Give a temporary flying ability or other unique power
+        selectedCategory = "rare"
     elseif outcome <= 97 then
-        -- Very rare rewards
-        -- Example: Grant a significant amount of in-game currency or rare items
+        selectedCategory = "veryRare"
     else
-        -- Unlucky outcomes
-        -- Example: Harmless prank, like changing the character's head size
-        player.Character.Head.Mesh.Scale = Vector3.new(2, 2, 2) -- Enlarge the head
-        wait(10) -- Duration of the effect
-        player.Character.Head.Mesh.Scale = Vector3.new(1, 1, 1) -- Reset the head size
+        selectedCategory = "unlucky"
     end
 
-    Debris:AddItem(box, 1) -- Ensure the box is cleaned up after interaction
+    -- Selecting a random reward from the chosen category
+    selectedReward = MysteryBoxEvent.boxContents[selectedCategory][math.random(1, #MysteryBoxEvent.boxContents[selectedCategory])]
+
+    -- Apply the selected reward to the player based on its type
+    -- This should be expanded with actual implementation for each reward type
+    if selectedReward.type == "speedBoost" then
+        player.Character.Humanoid.WalkSpeed += selectedReward.amount
+        wait(selectedReward.duration)
+        player.Character.Humanoid.WalkSpeed -= selectedReward.amount
+    -- Implement additional conditions for other reward types here
+    end
+
+    Debris:AddItem(box, 1) -- Clean up the box after interaction
 end
 
--- Function to initiate the event with a visual indicator
+-- Main function to initiate the event
 function MysteryBoxEvent.initiateEvent()
-    -- Notify all players that the event has started
-    for _, player in ipairs(Players:GetPlayers()) do
-        player:SendNotification({
-            Title = "Mystery Box Event",
-            Text = "Mystery boxes have spawned! Find and open yours!",
-            Duration = eventDuration
-        })
-    end
-
-    MysteryBoxEvent.spawnBoxes() -- Spawn the mystery boxes
-    wait(eventDuration) -- Wait for the event duration before ending
-    -- Any cleanup or reset operations go here
+    print("Spawning Mystery Boxes on each plate...")
+    MysteryBoxEvent.spawnBoxes()
+    -- Additional logic to start the event can be added here
 end
 
 return MysteryBoxEvent
